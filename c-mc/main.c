@@ -1,9 +1,10 @@
 #include "stdio.h"
 #include <stdlib.h>
-#include <sys/_pthread/_pthread_t.h>
 #include <time.h>
 #include <pthread.h>
 #include <stdatomic.h>
+
+#define POOL_SIZE 10
 
 _Atomic double d = 0.0;
 
@@ -37,11 +38,12 @@ double monte_carlo(long long trials) {
     printf("pi ~= %.10f\n", pi_estimate);
     
     double old = atomic_load(&d);
-    old = (pi_estimate + old) / 2;
+    old += pi_estimate;
     atomic_store(&d, old);
     return pi_estimate;
 }
 
+// void pointer as argument (generic), we cast it back to a struct b4 using it
 static void *mc_thread(void *arg) {
     mc_task_t *t = (mc_task_t*)arg;
     t->result = monte_carlo(t->trials);
@@ -51,17 +53,28 @@ static void *mc_thread(void *arg) {
 int main() {
     pthread_t t1;
     pthread_t t2;
-    mc_task_t task = { .trials = 1LL<<24, .result = 0.0 };
+
+    pthread_t tid[POOL_SIZE];
+    //task args[POOL_SIZE];
+
+    /*for (int i = 0;i < POOL_SIZE;i++) {
+        tid[i] = pthread_create(&tid[i], NULL, mc_thread, &task);
+    }*/
+    mc_task_t task = { .trials = 1LL<<50, .result = 0.0 };
     pthread_create(&t1, NULL, mc_thread, &task);
     pthread_create(&t2, NULL, mc_thread, &task);
     
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
 
+    /*for (int i = 0;i < POOL_SIZE;i++) {
+        pthread_join(tid[i], NULL);
+    }*/
+
     printf("pi ≈ %.6f\n", task.result);
 
     double val = atomic_load(&d);
-    printf("FINAL: pi ≈ %.6f\n", val);
+    printf("FINAL: pi ≈ %.6f\n", val / 2);
 
     return 0;
 }
