@@ -8,7 +8,7 @@
 #include "client.c"
 #include "utils.h"
 
-#define POOL_SIZE 2
+#define POOL_SIZE 4
 
 _Atomic double d = 0.0;
 
@@ -47,35 +47,31 @@ static void *mc_thread(void *arg) {
 
 int main() {
     int client_fd = connect_client();
-    pthread_t t1;
-    pthread_t t2;
 
     pthread_t tid[POOL_SIZE];
-    //task args[POOL_SIZE];
+    mc_task_t args[POOL_SIZE];
 
-    /*for (int i = 0;i < POOL_SIZE;i++) {
-        tid[i] = pthread_create(&tid[i], NULL, mc_thread, &task);
-    }*/
-    mc_task_t task = { .trials = 1LL<<20, .result = 0.0 };
     uint64_t start = now_ns();
-    pthread_create(&t1, NULL, mc_thread, &task);
-    pthread_create(&t2, NULL, mc_thread, &task);
 
-    pthread_join(t1, NULL);
-    pthread_join(t2, NULL);
+    // Create threads
+    for (int i = 0;i < POOL_SIZE;i++) {
+        args[i].trials = 1LL << 20;
+        args[i].result = 0.0;
+        if (pthread_create(&tid[i], NULL, mc_thread, &args[i]) != 0) {
+            perror("pthread_create"); exit(1);
+        }
+    }
+    mc_task_t task = { .trials = 1LL<<20, .result = 0.0 };
+    
+    for (int i = 0;i < POOL_SIZE;i++) pthread_join(tid[i], NULL);
     uint64_t end = now_ns();
     uint64_t elapsed = end - start;
     printf("Completed in: %" PRIu64 " ns\n", elapsed);
     printf("Which is:     %.3f ms\n", elapsed / 1e6);
-    /*for (int i = 0;i < POOL_SIZE;i++) {
-        pthread_join(tid[i], NULL);
-    }*/
-
-    //printf("pi ≈ %.6f\n", task.result);
 
     double val = atomic_load(&d);
-    printf("FINAL: pi ≈ %.6f\n", val / 2);
-    double out = val / 2;
+    printf("FINAL: pi ≈ %.6f\n", val / POOL_SIZE);
+    double out = val / POOL_SIZE;
 
     mc_task_t output;
     output.result = out;

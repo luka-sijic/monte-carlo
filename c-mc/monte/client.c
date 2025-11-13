@@ -31,17 +31,4 @@ static int connect_client() {
     }
 
     return cfd;
-    /**
-    const char *msg = "hello, server\n";
-    if (send(cfd, msg, strlen(msg), 0) < 0) { perror("send"); close(cfd); exit(EXIT_FAILURE); }
-
-    char buf[4096];
-    ssize_t n = recv(cfd, buf, sizeof(buf)-1, 0);
-    if (n < 0) { perror("recv"); close(cfd); exit(EXIT_FAILURE); }
-    buf[n] = '\0';
-    printf("Received: %s", buf);
-
-    close(cfd);
-    return 0;
-    */
 }
