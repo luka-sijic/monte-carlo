@@ -12,12 +12,12 @@
 
 _Atomic double d = 0.0;
 
-double monte_carlo(long long trials) {
+double monte_carlo(uint64_t trials) {
     srand((unsigned int)time(NULL));
 
-    long long inside = 0;
+    uint64_t inside = 0;
     
-    for (long long i = 0;i < trials;i++) {
+    for (uint64_t i = 0;i < trials;i++) {
         double x = rand_unit();
         double y = rand_unit();
 
@@ -77,21 +77,17 @@ int main() {
     printf("FINAL: pi ≈ %.6f\n", val / 2);
     double out = val / 2;
 
-    net output;
+    mc_task_t output;
     output.result = out;
     output.trials = (1LL<<20) * POOL_SIZE;
 
-    size_t left = sizeof out;
-    const char *p = (const char*)&out;
-    // Print out raw bytes
-    printf("Raw bytes: ");
-    const unsigned char *bp = (const unsigned char *)&out;
-    for (size_t i = 0; i < sizeof out; i++) {
-        printf("%02X ", bp[i]);
-    }
-    printf("\n");
-    // send double over the wire
-    while (left) {
+    uint8_t buf[sizeof output];
+    serialize_message(&output, buf);
+
+    size_t left = MSG_WIRE_SIZE;
+    uint8_t *p = buf;
+
+    while (left > 0) {
         ssize_t n = send(client_fd, p, left, 0);
         if (n < 0) {
             if (errno == EINTR) continue;
@@ -101,6 +97,8 @@ int main() {
         p += (size_t)n;
         left -= (size_t)n;
     }
+
+
 
     return 0;
 }

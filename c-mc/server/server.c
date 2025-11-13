@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include "hash.c"
+#include "utils.h"
 #include <sys/fcntl.h>
 #include <sys/socket.h>
 #include <sys/event.h>
@@ -21,14 +22,26 @@ typedef struct Conn {
 } Conn;
 
 void handle_client(int client_fd) {
-    //write(client_fd, "hello", 6);
-    char buffer[1024];
-    double value;
-    ssize_t nread = recv(client_fd, &value, sizeof value, 0);
-    if (nread == sizeof value) {
-        printf("%.10f\n", value); 
-    } else {
-        printf("LOL");
+    uint8_t buf[MSG_WIRE_SIZE];
+    size_t got = 0;
+
+    while (got < MSG_WIRE_SIZE) {
+        ssize_t n = recv(client_fd, buf + got, MSG_WIRE_SIZE - got, 0);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            perror("recv");
+            break;
+        }
+        if (n == 0) {
+            break;
+        }
+        got += (size_t)n;
+    }
+    
+    if (got == MSG_WIRE_SIZE) {
+        mc_task_t m;
+        deserialize_msg(&m, buf);
+        printf("trials: %llu result: %f\n", m.trials, m.result);
     }
 }
 

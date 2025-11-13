@@ -6,16 +6,27 @@
 #include <time.h>
 #include <sys/socket.h>
 #include <stdint.h>
+#include <string.h>
 
-typedef struct {
-    long long trials;
+#define MSG_WIRE_SIZE (sizeof(uint64_t) + sizeof(double) + 32)
+
+typedef struct mc_task_t {
+    uint64_t trials;
     double result;
 } mc_task_t;
 
-typedef struct net {
-    long long trials;
-    double result;
-} net;
+
+static inline void serialize_message(const mc_task_t *n, uint8_t *buf) {
+    //uint32_t net_id = htonl(n->trials);
+
+    size_t off = 0;
+
+    memcpy(buf + off, &n->trials, sizeof n->trials);
+    off += sizeof n->trials;
+
+    memcpy(buf + off, &n->result, sizeof n->result);
+    off += sizeof n->result;
+}
 
 static inline double rand_unit() {
     return (double)rand() / (double)RAND_MAX;
