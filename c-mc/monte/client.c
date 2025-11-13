@@ -1,4 +1,5 @@
 // client.c
+#include "client.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,7 +8,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-static int connect_client() {
+int connect_client(void) {
     const char *server_ip = "127.0.0.1";
     const uint16_t port = 8080;
 

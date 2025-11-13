@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <time.h>
 #include <inttypes.h>
-#include "client.c"
+#include "client.h"
 #include "utils.h"
 
 #define POOL_SIZE 4
