@@ -1,21 +1,16 @@
-#include "stdio.h"
 #include <stdlib.h>
-#include <time.h>
+#include <stdio.h>
 #include <pthread.h>
 #include <stdatomic.h>
+#include <errno.h>
+#include <time.h>
+#include <inttypes.h>
+#include "client.c"
+#include "utils.h"
 
-#define POOL_SIZE 10
+#define POOL_SIZE 2
 
 _Atomic double d = 0.0;
-
-typedef struct {
-    long long trials;
-    double result;
-} mc_task_t;
-
-double rand_unit() {
-    return (double)rand() / (double)RAND_MAX;
-}
 
 double monte_carlo(long long trials) {
     srand((unsigned int)time(NULL));
@@ -51,6 +46,7 @@ static void *mc_thread(void *arg) {
 }
 
 int main() {
+    int client_fd = connect_client();
     pthread_t t1;
     pthread_t t2;
 
@@ -60,21 +56,51 @@ int main() {
     /*for (int i = 0;i < POOL_SIZE;i++) {
         tid[i] = pthread_create(&tid[i], NULL, mc_thread, &task);
     }*/
-    mc_task_t task = { .trials = 1LL<<50, .result = 0.0 };
+    mc_task_t task = { .trials = 1LL<<20, .result = 0.0 };
+    uint64_t start = now_ns();
     pthread_create(&t1, NULL, mc_thread, &task);
     pthread_create(&t2, NULL, mc_thread, &task);
-    
+
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
-
+    uint64_t end = now_ns();
+    uint64_t elapsed = end - start;
+    printf("Completed in: %" PRIu64 " ns\n", elapsed);
+    printf("Which is:     %.3f ms\n", elapsed / 1e6);
     /*for (int i = 0;i < POOL_SIZE;i++) {
         pthread_join(tid[i], NULL);
     }*/
 
-    printf("pi ≈ %.6f\n", task.result);
+    //printf("pi ≈ %.6f\n", task.result);
 
     double val = atomic_load(&d);
     printf("FINAL: pi ≈ %.6f\n", val / 2);
+    double out = val / 2;
+
+    net output;
+    output.result = out;
+    output.trials = (1LL<<20) * POOL_SIZE;
+
+    size_t left = sizeof out;
+    const char *p = (const char*)&out;
+    // Print out raw bytes
+    printf("Raw bytes: ");
+    const unsigned char *bp = (const unsigned char *)&out;
+    for (size_t i = 0; i < sizeof out; i++) {
+        printf("%02X ", bp[i]);
+    }
+    printf("\n");
+    // send double over the wire
+    while (left) {
+        ssize_t n = send(client_fd, p, left, 0);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            perror("send");
+            break;
+        }
+        p += (size_t)n;
+        left -= (size_t)n;
+    }
 
     return 0;
 }

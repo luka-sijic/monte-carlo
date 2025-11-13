@@ -22,9 +22,23 @@ typedef struct {
     int32_t b;
 } node2;
 
+int alpha(int *fds) {
+    printf("lol");
+    return 1;
+}
 
 int main() {
+    float a = 1.0f;
+    int gg = 5;
+    int res = alpha(&gg);
+    
     printf("Size of struct: %zu\n", sizeof(node));
     printf("Size of struct: %zu\n", sizeof(node2));
+
+    double b = 50.0;
+    unsigned char* p = (unsigned char*)&b;
+    for (size_t i = 0;i < sizeof(b);i++) {
+        printf("%02x\n", p[i]);
+    }
     return 0;
 }
