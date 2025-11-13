@@ -13,6 +13,7 @@
 typedef struct mc_task_t {
     uint64_t trials;
     double result;
+    unsigned int seed;
 } mc_task_t;
 
 
@@ -28,8 +29,9 @@ static inline void serialize_message(const mc_task_t *n, uint8_t *buf) {
     off += sizeof n->result;
 }
 
-static inline double rand_unit() {
-    return (double)rand() / (double)RAND_MAX;
+static inline double rand_unit(unsigned int *state) {
+    unsigned int r = rand_r(state);
+    return (double)r / ((double)RAND_MAX + 1.0);
 }
 
 static inline uint64_t now_ns(void) {
